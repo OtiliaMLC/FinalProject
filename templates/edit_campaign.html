@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Campaign - Bootstrap Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Edit Campaign</h2>
+        <p class="subtitle">Update your campaign details</p>
+        
+        <form method="POST" action="{{ url_for('edit_campaign', campaign_id=campaign.id) }}">
+            <div class="form-group">
+                <label for="name">Campaign Name *</label>
+                <input type="text" id="name" name="name" value="{{ campaign.name }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="budget">Budget ($) *</label>
+                <input type="number" id="budget" name="budget" step="0.01" min="0.01" value="{{ campaign.budget }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="channel">Marketing Channel *</label>
+                <select id="channel" name="channel" required>
+                    <option value="Instagram" {% if campaign.channel == 'Instagram' %}selected{% endif %}>Instagram</option>
+                    <option value="Facebook" {% if campaign.channel == 'Facebook' %}selected{% endif %}>Facebook</option>
+                    <option value="Google Ads" {% if campaign.channel == 'Google Ads' %}selected{% endif %}>Google Ads</option>
+                    <option value="TikTok" {% if campaign.channel == 'TikTok' %}selected{% endif %}>TikTok</option>
+                    <option value="LinkedIn" {% if campaign.channel == 'LinkedIn' %}selected{% endif %}>LinkedIn</option>
+                    <option value="Email Marketing" {% if campaign.channel == 'Email Marketing' %}selected{% endif %}>Email Marketing</option>
+                    <option value="Twitter/X" {% if campaign.channel == 'Twitter/X' %}selected{% endif %}>Twitter/X</option>
+                    <option value="YouTube" {% if campaign.channel == 'YouTube' %}selected{% endif %}>YouTube</option>
+                    <option value="Other" {% if campaign.channel == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Start Date *</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ campaign.start_date }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="end_date">End Date *</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ campaign.end_date }}" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">Campaign Status *</label>
+                <select id="status" name="status" required>
+                    <option value="active" {% if campaign.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="paused" {% if campaign.status == 'paused' %}selected{% endif %}>Paused</option>
+                    <option value="completed" {% if campaign.status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Update Campaign</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

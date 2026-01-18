@@ -1,0 +1,144 @@
+========================================
+FINAL PROJECT PITCH
+Student: Otilia
+Date: January 18, 2026
+========================================
+
+PROJECT IDEA: Bootstrap Budget Tracker
+A marketing campaign manager for small businesses and startups on tight budgets
+
+========================================
+DESCRIPTION
+========================================
+
+This web application helps small business owners and startup founders track their marketing campaigns, 
+monitor spending, and calculate ROI without expensive marketing software. Users can create campaigns, 
+input performance data, and get instant insights on what's working and what's not.
+
+The app is designed for entrepreneurs who need to make every marketing dollar count - they can see 
+which channels give the best return, get alerts when budgets are running low, and make data-driven 
+decisions about where to invest their limited marketing budget.
+
+========================================
+MoSCoW PRIORITIZATION
+========================================
+
+MUST HAVE:
+- User registration and login system (authentication)
+- Create, read, update, delete campaigns (full CRUD)
+- Campaign details: name, budget, marketing channel, start/end dates
+- Track performance: impressions, clicks, conversions, actual spending
+- Automatic ROI calculation for each campaign
+- Dashboard showing all campaigns with key metrics
+- SQLite database for data storage
+
+SHOULD HAVE:
+- Budget alerts (warning when spending reaches 80% of budget)
+- Filter campaigns by channel or date range
+- Visual charts showing campaign performance (Chart.js)
+- Export campaign data as CSV file
+
+COULD HAVE:
+- Side-by-side campaign comparison
+- Channel recommendation based on past performance
+- Dark mode toggle for the interface
+
+WON'T HAVE:
+- Social media API integration
+- Automated post scheduling
+- Team collaboration features
+- Mobile app version
+- Payment processing
+
+========================================
+INPUT / OUTPUT / STORAGE
+========================================
+
+USER INPUT:
+- Registration: username, email, password
+- Login credentials
+- Campaign information: name, budget amount, marketing channel (e.g., Instagram, Google Ads, Email), 
+  start date, end date
+- Performance metrics: impressions, clicks, conversions, actual money spent
+
+DATA SOURCE:
+- All data is manually entered by users (no external APIs)
+- Users track their own campaign performance and input the numbers
+
+DATA STORAGE:
+SQLite database with three main tables:
+  1. users (id, username, password_hash, email, created_at)
+  2. campaigns (id, user_id, name, budget, channel, start_date, end_date, status, created_at)
+  3. metrics (id, campaign_id, date, impressions, clicks, conversions, spend)
+
+OUTPUT TO USER:
+- Dashboard with campaign overview table
+- ROI percentage for each campaign (calculated automatically)
+- Budget vs actual spend comparison
+- Performance charts (impressions, clicks, conversions over time)
+- Success/error messages for actions
+- CSV export of campaign data
+- Budget alerts when spending approaches limit
+
+========================================
+TECHNICAL SPECIFICATIONS
+========================================
+
+TECHNOLOGY STACK:
+- Python 3.10+ (Flask framework)
+- SQLite database
+- HTML5, CSS3 (Flexbox/Grid for responsive design)
+- JavaScript (Chart.js for data visualization)
+- pytest for testing
+- Hosted on Render (free tier)
+
+TESTING:
+- pytest test suite covering:
+  * ROI calculation functions
+  * Budget alert logic
+  * Date validation
+  * Database operations (CRUD)
+  * User authentication
+  * Flask route responses
+
+DELIVERABLES:
+- Complete Flask application
+- requirements.txt (all dependencies)
+- SQLite database schema
+- test_app.py (pytest suite)
+- HTML/CSS/JS frontend files
+- Deployed and running on Render
+- YouTube walkthrough video (max 10 minutes)
+
+========================================
+WHY THIS PROJECT?
+========================================
+
+RELEVANCE TO TRADE (International Business):
+As a business student focusing on marketing, this project directly addresses a real pain point 
+for small businesses - expensive marketing tools. It demonstrates understanding of marketing 
+metrics (ROI, conversion rates, channel performance) and business needs.
+
+REFLECTS SEMESTER LEARNING:
+- Flask web development (Week 4)
+- SQL database design and relationships (SQL assignments)
+- CRUD operations (Week 4)
+- HTML/CSS responsive design (Weeks 2-3, Grid Garden, Flexbox Froggy)
+- JavaScript interactivity (Duck Pond, game board)
+- pytest testing (required skill)
+- Deployment to production environment
+
+ESTIMATED EFFORT: ~80 hours
+- Database design & setup: 8 hours
+- User authentication system: 10 hours
+- Campaign CRUD operations: 12 hours
+- ROI calculations & logic: 8 hours
+- Dashboard & UI design: 15 hours
+- Charts & data visualization: 10 hours
+- pytest test suite: 8 hours
+- Deployment & debugging: 6 hours
+- YouTube video creation: 3 hours
+
+========================================
+END OF PITCH
+========================================

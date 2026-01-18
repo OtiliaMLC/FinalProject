@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Campaign - Bootstrap Budget Tracker{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-card">
+        <h2>Create New Campaign</h2>
+        <p class="subtitle">Set up a new marketing campaign to track</p>
+        
+        <form method="POST" action="{{ url_for('create_campaign') }}">
+            <div class="form-group">
+                <label for="name">Campaign Name *</label>
+                <input type="text" id="name" name="name" required placeholder="e.g., Summer Instagram Ads">
+            </div>
+            
+            <div class="form-group">
+                <label for="budget">Budget ($) *</label>
+                <input type="number" id="budget" name="budget" step="0.01" min="0.01" required placeholder="500.00">
+            </div>
+            
+            <div class="form-group">
+                <label for="channel">Marketing Channel *</label>
+                <select id="channel" name="channel" required>
+                    <option value="">Select a channel...</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Google Ads">Google Ads</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="LinkedIn">LinkedIn</option>
+                    <option value="Email Marketing">Email Marketing</option>
+                    <option value="Twitter/X">Twitter/X</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Start Date *</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="end_date">End Date *</label>
+                    <input type="date" id="end_date" name="end_date" required>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Campaign</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
