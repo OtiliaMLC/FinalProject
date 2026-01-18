@@ -10,6 +10,86 @@
     </div>
 
     {% if campaigns %}
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <form method="GET" action="{{ url_for('dashboard') }}" class="filter-form">
+                <div class="filter-group">
+                    <label for="filter_channel">Filter by Channel:</label>
+                    <select id="filter_channel" name="channel" onchange="this.form.submit()">
+                        <option value="">All Channels</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Google Ads">Google Ads</option>
+                        <option value="TikTok">TikTok</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Email Marketing">Email Marketing</option>
+                        <option value="Twitter/X">Twitter/X</option>
+                        <option value="YouTube">YouTube</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filter_status">Filter by Status:</label>
+                    <select id="filter_status" name="status" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                
+                <a href="{{ url_for('dashboard') }}" class="btn btn-small btn-secondary">Clear Filters</a>
+            </form>
+        </div>
+    
+        <!-- Overview Summary -->
+        <div class="overview-summary">
+            <div class="summary-card">
+                <div class="summary-icon">📊</div>
+                <div class="summary-info">
+                    <span class="summary-value">{{ campaigns|length }}</span>
+                    <span class="summary-label">Total Campaigns</span>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon">💰</div>
+                <div class="summary-info">
+                    <span class="summary-value">${{ "%.2f"|format(campaigns|sum(attribute='budget')) }}</span>
+                    <span class="summary-label">Total Budget</span>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon">💸</div>
+                <div class="summary-info">
+                    <span class="summary-value">${{ "%.2f"|format(campaigns|sum(attribute='total_spend')) }}</span>
+                    <span class="summary-label">Total Spent</span>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon">📈</div>
+                <div class="summary-info">
+                    <span class="summary-value">{{ "%.1f"|format((campaigns|sum(attribute='roi')) / (campaigns|length)) }}%</span>
+                    <span class="summary-label">Average ROI</span>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Campaign Budget Overview</h3>
+                <canvas id="budgetChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>ROI by Campaign</h3>
+                <canvas id="roiChart"></canvas>
+            </div>
+        </div>
+    
         <div class="campaigns-grid">
             {% for campaign in campaigns %}
                 <div class="campaign-card {% if campaign.budget_used_percent >= 80 %}budget-alert{% endif %}">
@@ -76,4 +156,115 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Campaign data for charts
+const campaignsData = {{ campaigns | tojson | safe }};
+
+// Budget Chart - Shows budget vs spend for each campaign
+if (campaignsData && campaignsData.length > 0) {
+    const budgetCtx = document.getElementById('budgetChart');
+    if (budgetCtx) {
+        new Chart(budgetCtx, {
+            type: 'bar',
+            data: {
+                labels: campaignsData.map(c => c.name),
+                datasets: [
+                    {
+                        label: 'Budget',
+                        data: campaignsData.map(c => c.budget),
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Spent',
+                        data: campaignsData.map(c => c.total_spend),
+                        backgroundColor: 'rgba(255, 107, 107, 0.6)',
+                        borderColor: 'rgba(255, 107, 107, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ROI Chart - Shows ROI percentage for each campaign
+    const roiCtx = document.getElementById('roiChart');
+    if (roiCtx) {
+        new Chart(roiCtx, {
+            type: 'bar',
+            data: {
+                labels: campaignsData.map(c => c.name),
+                datasets: [{
+                    label: 'ROI (%)',
+                    data: campaignsData.map(c => c.roi),
+                    backgroundColor: campaignsData.map(c => 
+                        c.roi > 0 ? 'rgba(40, 167, 69, 0.6)' : 'rgba(220, 53, 69, 0.6)'
+                    ),
+                    borderColor: campaignsData.map(c => 
+                        c.roi > 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'
+                    ),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'ROI: ' + context.parsed.y.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+</script>
 {% endblock %}

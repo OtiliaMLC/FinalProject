@@ -187,8 +187,12 @@ def dashboard():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Get all campaigns for the logged-in user
-    campaigns = cursor.execute('''
+    # Get filter parameters from URL
+    filter_channel = request.args.get('channel', '')
+    filter_status = request.args.get('status', '')
+    
+    # Build SQL query with filters
+    query = '''
         SELECT c.*, 
                COALESCE(SUM(m.spend), 0) as total_spend,
                COALESCE(SUM(m.impressions), 0) as total_impressions,
@@ -197,9 +201,22 @@ def dashboard():
         FROM campaigns c
         LEFT JOIN metrics m ON c.id = m.campaign_id
         WHERE c.user_id = ?
-        GROUP BY c.id
-        ORDER BY c.created_at DESC
-    ''', (session['user_id'],)).fetchall()
+    '''
+    
+    params = [session['user_id']]
+    
+    # Add filters if provided
+    if filter_channel:
+        query += ' AND c.channel = ?'
+        params.append(filter_channel)
+    
+    if filter_status:
+        query += ' AND c.status = ?'
+        params.append(filter_status)
+    
+    query += ' GROUP BY c.id ORDER BY c.created_at DESC'
+    
+    campaigns = cursor.execute(query, params).fetchall()
     
     conn.close()
     

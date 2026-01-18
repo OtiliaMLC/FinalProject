@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Bootstrap Budget Tracker{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -45,6 +46,7 @@
         <p>&copy; 2026 Bootstrap Budget Tracker by Otilia | Final Project CPNITS</p>
     </footer>
 
+    {% block scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 </body>
 </html>
