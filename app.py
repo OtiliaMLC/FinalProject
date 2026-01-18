@@ -10,13 +10,17 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this-in-production'  # Change this!
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
 
 # Database configuration
 DATABASE = os.path.join(app.instance_path, 'campaigns.db')
 
 # Ensure instance folder exists
 os.makedirs(app.instance_path, exist_ok=True)
+
+# Initialize database on startup
+with app.app_context():
+    init_db_on_startup = True
 
 
 # Database helper functions
@@ -29,12 +33,13 @@ def get_db():
 
 def init_db():
     """Initialize the database with tables"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             email TEXT UNIQUE NOT NULL,
@@ -42,39 +47,42 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    # Campaigns table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS campaigns (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            budget REAL NOT NULL,
-            channel TEXT NOT NULL,
-            start_date DATE NOT NULL,
-            end_date DATE NOT NULL,
-            status TEXT DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Metrics table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS metrics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            campaign_id INTEGER NOT NULL,
-            date DATE NOT NULL,
-            impressions INTEGER DEFAULT 0,
-            clicks INTEGER DEFAULT 0,
-            conversions INTEGER DEFAULT 0,
-            spend REAL DEFAULT 0.0,
-            FOREIGN KEY (campaign_id) REFERENCES campaigns (id) ON DELETE CASCADE
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
+
+        # Campaigns table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS campaigns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                budget REAL NOT NULL,
+                channel TEXT NOT NULL,
+                start_date DATE NOT NULL,
+                end_date DATE NOT NULL,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+
+        # Metrics table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                campaign_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                impressions INTEGER DEFAULT 0,
+                clicks INTEGER DEFAULT 0,
+                conversions INTEGER DEFAULT 0,
+                spend REAL DEFAULT 0.0,
+                FOREIGN KEY (campaign_id) REFERENCES campaigns (id) ON DELETE CASCADE
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+        print("Database initialized successfully!")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 
 
 # Login required decorator
@@ -403,6 +411,15 @@ def add_metrics(campaign_id):
     
     conn.close()
     return render_template('add_metrics.html', campaign=campaign)
+
+
+# Initialize database before first request
+@app.before_request
+def before_first_request():
+    """Initialize database before first request"""
+    if not hasattr(app, 'db_initialized'):
+        init_db()
+        app.db_initialized = True
 
 
 if __name__ == '__main__':
