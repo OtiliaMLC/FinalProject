@@ -148,14 +148,6 @@ Where:
 - **Total Revenue** = Number of Conversions × Average Conversion Value ($50)
 - **Total Spend** = Sum of all spending on the campaign
 
-## 🚀 Deployment to Render
-
-Instructions for deploying to Render will be added after local testing is complete.
-
-## 🎥 YouTube Walkthrough
-
-Video link will be added here after project completion.
-
 ## 📝 Testing Coverage
 
 The pytest suite covers:
@@ -185,17 +177,19 @@ This project demonstrates:
 - Test-driven development with pytest
 - Deployment to production environment
 
+## 🚀 Deployment to Render
+
+https://finalproject-2vqr.onrender.com/
+
+
 ## 🤝 Credits
 
 - Created by: Otilia
 - Course: Creative Programming for Non-IT Students (CPNITS)
 - Instructor: Victor
-- Institution: [Your Institution]
+- Institution: NhlStenden
 
 ## 📄 License
 
 Educational project for CPNITS Final Assignment - January 2026
 
----
-
-**For questions or issues, contact: [Your Email]**

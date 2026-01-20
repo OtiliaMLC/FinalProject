@@ -26,13 +26,14 @@ with app.app_context():
 # Database helper functions
 def get_db():
     """Connect to the database"""
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DATABASE, timeout=10)  # 10 second timeout to prevent lock errors
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
     return conn
 
 
 def init_db():
     """Initialize the database with tables"""
+    conn = None
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -79,10 +80,12 @@ def init_db():
         ''')
 
         conn.commit()
-        conn.close()
         print("Database initialized successfully!")
     except Exception as e:
         print(f"Error initializing database: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # Login required decorator
@@ -131,6 +134,7 @@ def register():
         # Hash password and save user
         password_hash = generate_password_hash(password)
         
+        conn = None
         try:
             conn = get_db()
             cursor = conn.cursor()
@@ -139,13 +143,15 @@ def register():
                 (username, email, password_hash)
             )
             conn.commit()
-            conn.close()
             
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             flash('Username or email already exists.', 'danger')
             return render_template('register.html')
+        finally:
+            if conn:
+                conn.close()
     
     return render_template('register.html')
 
@@ -161,21 +167,25 @@ def login():
             flash('Please enter both username and password.', 'danger')
             return render_template('login.html')
         
-        conn = get_db()
-        cursor = conn.cursor()
-        user = cursor.execute(
-            'SELECT * FROM users WHERE username = ?', (username,)
-        ).fetchone()
-        conn.close()
-        
-        if user and check_password_hash(user['password_hash'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            flash(f'Welcome back, {user["username"]}!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password.', 'danger')
-            return render_template('login.html')
+        conn = None
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            user = cursor.execute(
+                'SELECT * FROM users WHERE username = ?', (username,)
+            ).fetchone()
+            
+            if user and check_password_hash(user['password_hash'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                flash(f'Welcome back, {user["username"]}!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid username or password.', 'danger')
+                return render_template('login.html')
+        finally:
+            if conn:
+                conn.close()
     
     return render_template('login.html')
 
@@ -192,65 +202,68 @@ def logout():
 @login_required
 def dashboard():
     """Main dashboard showing all campaigns"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Get filter parameters from URL
-    filter_channel = request.args.get('channel', '')
-    filter_status = request.args.get('status', '')
-    
-    # Build SQL query with filters
-    query = '''
-        SELECT c.*, 
-               COALESCE(SUM(m.spend), 0) as total_spend,
-               COALESCE(SUM(m.impressions), 0) as total_impressions,
-               COALESCE(SUM(m.clicks), 0) as total_clicks,
-               COALESCE(SUM(m.conversions), 0) as total_conversions
-        FROM campaigns c
-        LEFT JOIN metrics m ON c.id = m.campaign_id
-        WHERE c.user_id = ?
-    '''
-    
-    params = [session['user_id']]
-    
-    # Add filters if provided
-    if filter_channel:
-        query += ' AND c.channel = ?'
-        params.append(filter_channel)
-    
-    if filter_status:
-        query += ' AND c.status = ?'
-        params.append(filter_status)
-    
-    query += ' GROUP BY c.id ORDER BY c.created_at DESC'
-    
-    campaigns = cursor.execute(query, params).fetchall()
-    
-    conn.close()
-    
-    # Calculate ROI for each campaign
-    campaigns_with_roi = []
-    for campaign in campaigns:
-        campaign_dict = dict(campaign)
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
         
-        # Calculate ROI
-        if campaign_dict['total_spend'] > 0 and campaign_dict['total_conversions'] > 0:
-            # Simplified ROI: (conversions - spend) / spend * 100
-            roi = ((campaign_dict['total_conversions'] * 50 - campaign_dict['total_spend']) / campaign_dict['total_spend']) * 100
-            campaign_dict['roi'] = round(roi, 2)
-        else:
-            campaign_dict['roi'] = 0
+        # Get filter parameters from URL
+        filter_channel = request.args.get('channel', '')
+        filter_status = request.args.get('status', '')
         
-        # Calculate budget usage percentage
-        if campaign_dict['budget'] > 0:
-            budget_used = (campaign_dict['total_spend'] / campaign_dict['budget']) * 100
-            campaign_dict['budget_used_percent'] = round(budget_used, 2)
-        else:
-            campaign_dict['budget_used_percent'] = 0
+        # Build SQL query with filters
+        query = '''
+            SELECT c.*, 
+                   COALESCE(SUM(m.spend), 0) as total_spend,
+                   COALESCE(SUM(m.impressions), 0) as total_impressions,
+                   COALESCE(SUM(m.clicks), 0) as total_clicks,
+                   COALESCE(SUM(m.conversions), 0) as total_conversions
+            FROM campaigns c
+            LEFT JOIN metrics m ON c.id = m.campaign_id
+            WHERE c.user_id = ?
+        '''
         
-        campaigns_with_roi.append(campaign_dict)
-    
-    return render_template('dashboard.html', campaigns=campaigns_with_roi)
+        params = [session['user_id']]
+        
+        # Add filters if provided
+        if filter_channel:
+            query += ' AND c.channel = ?'
+            params.append(filter_channel)
+        
+        if filter_status:
+            query += ' AND c.status = ?'
+            params.append(filter_status)
+        
+        query += ' GROUP BY c.id ORDER BY c.created_at DESC'
+        
+        campaigns = cursor.execute(query, params).fetchall()
+        
+        # Calculate ROI for each campaign
+        campaigns_with_roi = []
+        for campaign in campaigns:
+            campaign_dict = dict(campaign)
+            
+            # Calculate ROI
+            if campaign_dict['total_spend'] > 0 and campaign_dict['total_conversions'] > 0:
+                # Simplified ROI: (conversions - spend) / spend * 100
+                roi = ((campaign_dict['total_conversions'] * 50 - campaign_dict['total_spend']) / campaign_dict['total_spend']) * 100
+                campaign_dict['roi'] = round(roi, 2)
+            else:
+                campaign_dict['roi'] = 0
+            
+            # Calculate budget usage percentage
+            if campaign_dict['budget'] > 0:
+                budget_used = (campaign_dict['total_spend'] / campaign_dict['budget']) * 100
+                campaign_dict['budget_used_percent'] = round(budget_used, 2)
+            else:
+                campaign_dict['budget_used_percent'] = 0
+            
+            campaigns_with_roi.append(campaign_dict)
+        
+        return render_template('dashboard.html', campaigns=campaigns_with_roi)
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route('/campaign/create', methods=['GET', 'POST'])
@@ -278,17 +291,21 @@ def create_campaign():
             return render_template('create_campaign.html')
         
         # Save campaign
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO campaigns (user_id, name, budget, channel, start_date, end_date)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (session['user_id'], name, budget, channel, start_date, end_date))
-        conn.commit()
-        conn.close()
-        
-        flash('Campaign created successfully!', 'success')
-        return redirect(url_for('dashboard'))
+        conn = None
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO campaigns (user_id, name, budget, channel, start_date, end_date)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (session['user_id'], name, budget, channel, start_date, end_date))
+            conn.commit()
+            
+            flash('Campaign created successfully!', 'success')
+            return redirect(url_for('dashboard'))
+        finally:
+            if conn:
+                conn.close()
     
     return render_template('create_campaign.html')
 
@@ -297,120 +314,128 @@ def create_campaign():
 @login_required
 def edit_campaign(campaign_id):
     """Edit an existing campaign"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Get campaign (ensure it belongs to logged-in user)
-    campaign = cursor.execute('''
-        SELECT * FROM campaigns WHERE id = ? AND user_id = ?
-    ''', (campaign_id, session['user_id'])).fetchone()
-    
-    if not campaign:
-        conn.close()
-        flash('Campaign not found.', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    if request.method == 'POST':
-        name = request.form.get('name')
-        budget = request.form.get('budget')
-        channel = request.form.get('channel')
-        start_date = request.form.get('start_date')
-        end_date = request.form.get('end_date')
-        status = request.form.get('status')
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
         
-        # Validation
-        if not all([name, budget, channel, start_date, end_date, status]):
-            flash('All fields are required.', 'danger')
-            return render_template('edit_campaign.html', campaign=campaign)
+        # Get campaign (ensure it belongs to logged-in user)
+        campaign = cursor.execute('''
+            SELECT * FROM campaigns WHERE id = ? AND user_id = ?
+        ''', (campaign_id, session['user_id'])).fetchone()
         
-        try:
-            budget = float(budget)
-            if budget <= 0:
-                raise ValueError
-        except ValueError:
-            flash('Budget must be a positive number.', 'danger')
-            return render_template('edit_campaign.html', campaign=campaign)
+        if not campaign:
+            flash('Campaign not found.', 'danger')
+            return redirect(url_for('dashboard'))
         
-        # Update campaign
-        cursor.execute('''
-            UPDATE campaigns 
-            SET name = ?, budget = ?, channel = ?, start_date = ?, end_date = ?, status = ?
-            WHERE id = ? AND user_id = ?
-        ''', (name, budget, channel, start_date, end_date, status, campaign_id, session['user_id']))
-        conn.commit()
-        conn.close()
+        if request.method == 'POST':
+            name = request.form.get('name')
+            budget = request.form.get('budget')
+            channel = request.form.get('channel')
+            start_date = request.form.get('start_date')
+            end_date = request.form.get('end_date')
+            status = request.form.get('status')
+            
+            # Validation
+            if not all([name, budget, channel, start_date, end_date, status]):
+                flash('All fields are required.', 'danger')
+                return render_template('edit_campaign.html', campaign=campaign)
+            
+            try:
+                budget = float(budget)
+                if budget <= 0:
+                    raise ValueError
+            except ValueError:
+                flash('Budget must be a positive number.', 'danger')
+                return render_template('edit_campaign.html', campaign=campaign)
+            
+            # Update campaign
+            cursor.execute('''
+                UPDATE campaigns 
+                SET name = ?, budget = ?, channel = ?, start_date = ?, end_date = ?, status = ?
+                WHERE id = ? AND user_id = ?
+            ''', (name, budget, channel, start_date, end_date, status, campaign_id, session['user_id']))
+            conn.commit()
+            
+            flash('Campaign updated successfully!', 'success')
+            return redirect(url_for('dashboard'))
         
-        flash('Campaign updated successfully!', 'success')
-        return redirect(url_for('dashboard'))
-    
-    conn.close()
-    return render_template('edit_campaign.html', campaign=campaign)
+        return render_template('edit_campaign.html', campaign=campaign)
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route('/campaign/<int:campaign_id>/delete', methods=['POST'])
 @login_required
 def delete_campaign(campaign_id):
     """Delete a campaign"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Delete campaign (ensure it belongs to logged-in user)
-    cursor.execute('''
-        DELETE FROM campaigns WHERE id = ? AND user_id = ?
-    ''', (campaign_id, session['user_id']))
-    
-    conn.commit()
-    conn.close()
-    
-    flash('Campaign deleted successfully!', 'success')
-    return redirect(url_for('dashboard'))
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Delete campaign (ensure it belongs to logged-in user)
+        cursor.execute('''
+            DELETE FROM campaigns WHERE id = ? AND user_id = ?
+        ''', (campaign_id, session['user_id']))
+        
+        conn.commit()
+        
+        flash('Campaign deleted successfully!', 'success')
+        return redirect(url_for('dashboard'))
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.route('/campaign/<int:campaign_id>/metrics', methods=['GET', 'POST'])
 @login_required
 def add_metrics(campaign_id):
     """Add performance metrics to a campaign"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Verify campaign belongs to user
-    campaign = cursor.execute('''
-        SELECT * FROM campaigns WHERE id = ? AND user_id = ?
-    ''', (campaign_id, session['user_id'])).fetchone()
-    
-    if not campaign:
-        conn.close()
-        flash('Campaign not found.', 'danger')
-        return redirect(url_for('dashboard'))
-    
-    if request.method == 'POST':
-        date = request.form.get('date')
-        impressions = request.form.get('impressions', 0)
-        clicks = request.form.get('clicks', 0)
-        conversions = request.form.get('conversions', 0)
-        spend = request.form.get('spend', 0)
+    conn = None
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
         
-        try:
-            impressions = int(impressions)
-            clicks = int(clicks)
-            conversions = int(conversions)
-            spend = float(spend)
-        except ValueError:
-            flash('Invalid metric values.', 'danger')
-            return redirect(url_for('add_metrics', campaign_id=campaign_id))
+        # Verify campaign belongs to user
+        campaign = cursor.execute('''
+            SELECT * FROM campaigns WHERE id = ? AND user_id = ?
+        ''', (campaign_id, session['user_id'])).fetchone()
         
-        cursor.execute('''
-            INSERT INTO metrics (campaign_id, date, impressions, clicks, conversions, spend)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (campaign_id, date, impressions, clicks, conversions, spend))
-        conn.commit()
-        conn.close()
+        if not campaign:
+            flash('Campaign not found.', 'danger')
+            return redirect(url_for('dashboard'))
         
-        flash('Metrics added successfully!', 'success')
-        return redirect(url_for('dashboard'))
-    
-    conn.close()
-    return render_template('add_metrics.html', campaign=campaign)
+        if request.method == 'POST':
+            date = request.form.get('date')
+            impressions = request.form.get('impressions', 0)
+            clicks = request.form.get('clicks', 0)
+            conversions = request.form.get('conversions', 0)
+            spend = request.form.get('spend', 0)
+            
+            try:
+                impressions = int(impressions)
+                clicks = int(clicks)
+                conversions = int(conversions)
+                spend = float(spend)
+            except ValueError:
+                flash('Invalid metric values.', 'danger')
+                return redirect(url_for('add_metrics', campaign_id=campaign_id))
+            
+            cursor.execute('''
+                INSERT INTO metrics (campaign_id, date, impressions, clicks, conversions, spend)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (campaign_id, date, impressions, clicks, conversions, spend))
+            conn.commit()
+            
+            flash('Metrics added successfully!', 'success')
+            return redirect(url_for('dashboard'))
+        
+        return render_template('add_metrics.html', campaign=campaign)
+    finally:
+        if conn:
+            conn.close()
 
 
 # Initialize database before first request
