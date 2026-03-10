@@ -10,7 +10,7 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
+app.secret_key = os.environ.get('SECRET_KEY', 'bootstrap-budget-tracker-dev-key-2026')
 
 # Database configuration
 DATABASE = os.path.join(app.instance_path, 'campaigns.db')
@@ -38,7 +38,7 @@ def init_db():
         conn = get_db()
         cursor = conn.cursor()
         
-        # Users table
+        # Users table SQL QUERY
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +49,7 @@ def init_db():
         )
     ''')
 
-        # Campaigns table
+        # Campaigns table SQL QUERY 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS campaigns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +65,7 @@ def init_db():
             )
         ''')
 
-        # Metrics table
+        # Metrics table SQL QUERY
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

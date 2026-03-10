@@ -6,6 +6,8 @@ Created by: Otilia
 Course: CPNITS - Final Project  
 Date: January 2026
 
+🎥 **Video Pitch:** [Watch on YouTube](https://youtu.be/ssvWSpxBJIo)
+
 ---
 
 ## 📋 Project Description
@@ -177,9 +179,10 @@ This project demonstrates:
 - Test-driven development with pytest
 - Deployment to production environment
 
-## 🚀 Deployment to Render
+## 🚀 Deployment & Demo
 
-https://finalproject-2vqr.onrender.com/
+- **Live App:** https://finalproject-2vqr.onrender.com/
+- **Video Pitch:** https://youtu.be/ssvWSpxBJIo
 
 
 ## 🤝 Credits
